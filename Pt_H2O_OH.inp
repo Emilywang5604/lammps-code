@@ -1,0 +1,67 @@
+####Initialization####
+units           real
+dimension       3
+atom_style      full
+boundary        p p p
+read_data       data.lammps
+
+pair_style      hybrid lj/cut/coul/long 9.8 9.8 morse 3.2376
+
+pair_coeff      1 1  lj/cut/coul/long 0.046   1.000  #Hw Hw
+pair_coeff      1 2  lj/cut/coul/long 0.08455 2.083  #Hw Ow
+pair_coeff      2 2  lj/cut/coul/long 0.1554  3.166  #Ow Ow
+pair_coeff      2 4  lj/cut/coul/long 0.156   3.448  #Ow OH_O
+pair_coeff      2 5  lj/cut/coul/long 0       0      #Ow OH_H
+pair_coeff      1 4  lj/cut/coul/long 0.0847  2.365  #Hw OH_O
+pair_coeff      1 5  lj/cut/coul/long 0       0      #Hw OH_H 
+
+pair_coeff      4 4  none  #O_OH
+pair_coeff      5 5  none  #H_OH
+pair_coeff      4 5  none
+
+pair_coeff      1 3  morse 0.053  2      3.5     #Hw Pt
+pair_coeff      2 3  morse 9.224  1.3516 3       #Ow Pt
+pair_coeff      3 4  none #morse 10.529 1.4921 1.9251
+pair_coeff      3 5  none #morse 0.0507 1.9258 3.2376
+pair_coeff      3 3  none
+
+pair_coeff      1 6  lj/cut/coul/long  0.046   1.000  #Hw H+
+pair_coeff      2 6  lj/cut/coul/long  0.08455 2.083  #Ow H+
+pair_coeff      3 6  lj/cut/coul/long  0.5990  1.7673 #Pt H+
+pair_coeff      4 6  lj/cut/coul/long  0.0847  2.365  #O_OH H+
+pair_coeff      5 6  lj/cut/coul/long  0       0      #H_OH H+
+pair_coeff      6 6  none
+
+group           surface type 3
+group           H2O     type 1 2 4 5 
+
+bond_style      harmonic
+angle_style     harmonic
+bond_coeff      1 40 1  
+bond_coeff      2 40 1  # OH- bond 
+angle_coeff     1 55 109.5
+
+kspace_style    pppm/cg 1.0e-5 1.0e-6
+
+velocity        H2O create 298 23482341 rot yes dist gaussian
+
+fix             1 all shake 0.0001 20 0 b 1 2 a 1
+fix             2 all nvt temp 298 298 100
+fix             freeze surface setforce 0.0 0.0 0.0
+
+neighbor        2.0 bin
+neigh_modify    delay 0 every 1 check yes
+
+timestep        1 #fs
+thermo          20
+dump            positions all atom 100 filename.lammpstrj
+#dump            1 all custom 100 output.lammpstrj element x y z 
+#dump_modify     1 element H O Pt O H H
+run             3000
+
+fix             3 all colvars colvar.lammps
+run             500000
+fix             3 all colvars colvar.lammps input out.colvars.state output out2
+run             200000
+
+
